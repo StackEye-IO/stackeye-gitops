@@ -1,6 +1,14 @@
-# Tailscale Connectors for Worker Clusters
+# Tailscale for Worker Clusters
 
-This directory contains Tailscale Connector manifests for enabling worker pods on NYC3 and SFO3 clusters to access services on the Tailscale network.
+This directory contains Tailscale configuration for enabling worker pods on NYC3 and SFO3 clusters to access services on the Tailscale network (PostgreSQL and Valkey on a1-ops-prd).
+
+## Connectivity Approach: Tailscale Sidecar
+
+**Recommended**: Each worker pod runs a Tailscale sidecar container that joins the Tailscale network directly. This provides:
+- Direct Tailscale connectivity per pod
+- MagicDNS resolution for `stackeye-db-*` and `stackeye-valkey-*` hostnames
+- No complex cluster networking configuration
+- Works with userspace networking (no NET_ADMIN required)
 
 ## Architecture
 
@@ -13,24 +21,29 @@ This directory contains Tailscale Connector manifests for enabling worker pods o
 │  │  (Services Origin)   │    │   (Worker Cluster)   │    │(Worker Cluster)││
 │  │                      │    │                      │    │                ││
 │  │ ┌──────────────────┐ │    │ ┌──────────────────┐ │    │ ┌────────────┐ ││
-│  │ │ stackeye-db-*    │ │    │ │  Connector       │ │    │ │ Connector  │ ││
-│  │ │ stackeye-valkey-*│◄┼────┼─┤  (egress to TS)  │ │    │ │ (egress)   │ ││
-│  │ └──────────────────┘ │    │ │                  │ │    │ │            │ ││
-│  │                      │    │ └────────┬─────────┘ │    │ └─────┬──────┘ ││
-│  │ (Tailscale Operator  │    │          │           │    │       │        ││
-│  │  exposes services)   │    │ ┌────────▼─────────┐ │    │ ┌─────▼──────┐ ││
-│  │                      │    │ │  Worker Pods     │ │    │ │Worker Pods │ ││
-│  └──────────────────────┘    │ └──────────────────┘ │    │ └────────────┘ ││
-│                              └──────────────────────┘    └────────────────┘│
+│  │ │ stackeye-db-*    │ │    │ │  Worker Pod      │ │    │ │ Worker Pod │ ││
+│  │ │ stackeye-valkey-*│◄┼────┼─┤  ┌────────────┐  │ │    │ │ ┌────────┐ │ ││
+│  │ └──────────────────┘ │    │ │  │ Tailscale  │  │ │    │ │ │Tailscal│ │ ││
+│  │                      │    │ │  │ Sidecar    │  │ │    │ │ │Sidecar │ │ ││
+│  │ (Tailscale Operator  │    │ │  └────────────┘  │ │    │ │ └────────┘ │ ││
+│  │  exposes services)   │    │ └──────────────────┘ │    │ └────────────┘ ││
+│  └──────────────────────┘    └──────────────────────┘    └────────────────┘│
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
+
+## Directory Contents
+
+| File | Description |
+|------|-------------|
+| `secrets-template.yaml` | Tailscale auth key secret template |
+| `nyc3/connector.yaml` | Tailscale Connector for NYC3 (infrastructure) |
+| `sfo3/connector.yaml` | Tailscale Connector for SFO3 (infrastructure) |
 
 ## Prerequisites
 
 1. **Tailscale Operator** installed on each cluster
 2. **MagicDNS** enabled in Tailscale admin (https://login.tailscale.com/admin/settings/dns)
-3. **Subnet Routes Approved** in Tailscale admin (see Route Approval section below)
-4. **ACL Policy** configured to allow access:
+3. **ACL Policy** configured to allow access:
 
 ```json
 {
@@ -44,23 +57,96 @@ This directory contains Tailscale Connector manifests for enabling worker pods o
 }
 ```
 
-## Deployment
+## Step 1: Create Tailscale Auth Key Secret
 
-### NYC3 Cluster
+The Tailscale sidecar needs an auth key to join the Tailscale network.
+
+### Generate Auth Key
+
+1. Go to https://login.tailscale.com/admin/settings/keys
+2. Create a new auth key with these settings:
+   - **Reusable**: Yes (for multiple pod replicas)
+   - **Ephemeral**: Yes (auto-expire when pods terminate)
+   - **Tags**: `tag:stackeye-worker`
+   - **Expiration**: 90 days (rotate before expiry)
+
+### Create the Secret
+
+```bash
+# Edit secrets-template.yaml and replace <TAILSCALE_AUTH_KEY> with your key
+
+# Apply to NYC3 cluster (all namespaces)
+KUBECONFIG=~/.kube/mattox/stackeye-nyc3 kubectl apply -f secrets-template.yaml
+
+# Apply to SFO3 cluster (all namespaces)
+KUBECONFIG=~/.kube/mattox/stackeye-sfo3 kubectl apply -f secrets-template.yaml
+```
+
+## Step 2: Sidecar Configuration (via Helm Values)
+
+The Tailscale sidecar is configured in the environment values files (`environments/<env>/values.yaml`):
+
+```yaml
+worker:
+  tailscale:
+    enabled: true
+    image:
+      repository: tailscale/tailscale
+      tag: latest
+    authSecretName: tailscale-auth
+    authSecretKey: authkey
+    userspace: true          # No NET_ADMIN required
+    acceptRoutes: true       # Accept routes from other Tailscale nodes
+    resources:
+      requests:
+        cpu: 10m
+        memory: 64Mi
+      limits:
+        cpu: 100m
+        memory: 128Mi
+```
+
+ArgoCD will automatically deploy the sidecar when it syncs the worker applications.
+
+## Step 3: Verify Connectivity
+
+After the secrets are created and pods are deployed:
+
+```bash
+# Check pod has tailscale sidecar
+KUBECONFIG=~/.kube/mattox/stackeye-nyc3 kubectl get pods -n stackeye -l app=stackeye-worker
+
+# Exec into worker pod and test database connectivity
+KUBECONFIG=~/.kube/mattox/stackeye-nyc3 kubectl exec -n stackeye \
+  deploy/stackeye-worker -c tailscale -- tailscale status
+
+# Test database connection from worker container
+KUBECONFIG=~/.kube/mattox/stackeye-nyc3 kubectl exec -n stackeye \
+  deploy/stackeye-worker -c worker -- \
+  sh -c 'nc -zv stackeye-db-prd 5432'
+```
+
+---
+
+## Tailscale Connectors (Infrastructure)
+
+The connectors are deployed for cluster-level Tailscale infrastructure but are **not required** for worker connectivity when using sidecars.
+
+### Connector Deployment
+
+#### NYC3 Cluster
 
 ```bash
 KUBECONFIG=~/.kube/mattox/stackeye-nyc3 kubectl apply -f nyc3/connector.yaml
 ```
 
-### SFO3 Cluster
+#### SFO3 Cluster
 
 ```bash
 KUBECONFIG=~/.kube/mattox/stackeye-sfo3 kubectl apply -f sfo3/connector.yaml
 ```
 
-## Verification
-
-### Check Connector Status
+### Connector Verification
 
 ```bash
 # NYC3
@@ -70,27 +156,11 @@ KUBECONFIG=~/.kube/mattox/stackeye-nyc3 kubectl get connectors -n tailscale
 KUBECONFIG=~/.kube/mattox/stackeye-sfo3 kubectl get connectors -n tailscale
 ```
 
-### Check Tailscale Admin
+After deployment, connectors appear at https://login.tailscale.com/admin/machines:
+- `stackeye-nyc3-egress` (100.112.85.33)
+- `stackeye-sfo3-egress` (100.76.103.107)
 
-After deployment, connectors should appear at https://login.tailscale.com/admin/machines:
-- `stackeye-nyc3-egress`
-- `stackeye-sfo3-egress`
-
-### Test Connectivity
-
-```bash
-# From NYC3 - test PostgreSQL
-KUBECONFIG=~/.kube/mattox/stackeye-nyc3 kubectl run test-pg --rm -it \
-  --image=postgres:17-alpine --restart=Never -- \
-  pg_isready -h stackeye-db-prd -p 5432
-
-# From SFO3 - test Valkey
-KUBECONFIG=~/.kube/mattox/stackeye-sfo3 kubectl run test-valkey --rm -it \
-  --image=valkey/valkey:8.0 --restart=Never -- \
-  valkey-cli -h stackeye-valkey-prd ping
-```
-
-## Connector Configuration
+### Connector Configuration
 
 | Cluster | Hostname | Tags | Subnet Routes |
 |---------|----------|------|---------------|

@@ -11,6 +11,25 @@ worker:
   image:
     tag: "latest"  # Updated by CD on v*.*.*-staging tags
 
+  # Tailscale sidecar for database connectivity via Tailscale network
+  # Enables connection to stackeye-db-stg and stackeye-valkey-stg on a1-ops-prd
+  tailscale:
+    enabled: true
+    image:
+      repository: tailscale/tailscale
+      tag: latest
+    authSecretName: tailscale-auth
+    authSecretKey: authkey
+    userspace: true
+    acceptRoutes: true
+    resources:
+      requests:
+        cpu: 10m
+        memory: 64Mi
+      limits:
+        cpu: 100m
+        memory: 128Mi
+
 # Web service
 web:
   image:

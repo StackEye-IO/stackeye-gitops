@@ -11,6 +11,28 @@ worker:
   image:
     tag: "latest"  # Updated by CD on v*.*.*-prod tags
 
+  # Tailscale sidecar for database connectivity via Tailscale network
+  # Enables connection to stackeye-db-prd and stackeye-valkey-prd on a1-ops-prd
+  tailscale:
+    enabled: true
+    image:
+      repository: tailscale/tailscale
+      tag: latest
+    authSecretName: tailscale-auth
+    authSecretKey: authkey
+    # Userspace networking (no NET_ADMIN required, works on most cloud providers)
+    userspace: true
+    # Accept routes from subnet routers (needed to reach Tailscale services)
+    acceptRoutes: true
+    # Resources for Tailscale sidecar
+    resources:
+      requests:
+        cpu: 10m
+        memory: 64Mi
+      limits:
+        cpu: 100m
+        memory: 128Mi
+
 # Web service
 web:
   image:
