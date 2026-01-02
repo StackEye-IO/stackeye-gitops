@@ -1,0 +1,62 @@
+apiVersion: hyperspike.io/v1
+kind: Valkey
+metadata:
+  name: stackeye-valkey
+  namespace: stackeye-dev
+  labels:
+    app.kubernetes.io/name: stackeye
+    app.kubernetes.io/component: cache
+    environment: dev
+spec:
+  # Standalone mode for dev
+  nodes: 1
+  replicas: 0
+
+  # Valkey 8.0 image
+  image: valkey/valkey:8.0
+
+  # Authentication required
+  anonymousAuth: false
+
+  # Resources for dev
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+  # Storage
+  storage:
+    apiVersion: v1
+    kind: PersistentVolumeClaim
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: 2Gi
+      storageClassName: longhorn
+
+  # No TLS for internal use
+  tls: false
+
+  # Cluster settings
+  clusterDomain: cluster.local
+  clusterPreferredEndpointType: ip
+  certIssuerType: ClusterIssuer
+
+  # External access disabled
+  externalAccess:
+    enabled: false
+    type: Proxy
+    externalDNS: false
+    certIssuerType: ClusterIssuer
+
+  # Volume permissions fix
+  volumePermissions: true
+
+  # Monitoring disabled for dev
+  prometheus: false
+  serviceMonitor: false
