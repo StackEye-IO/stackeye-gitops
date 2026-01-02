@@ -63,10 +63,10 @@ kubectl apply -k infrastructure/cnpg/base/
 kubectl apply -k infrastructure/cnpg/dev/
 
 # Deploy stg cluster
-kubectl apply -k infrastructure/cnpg/staging/
+kubectl apply -k infrastructure/cnpg/stg/
 
 # Deploy prd cluster
-kubectl apply -k infrastructure/cnpg/prod/
+kubectl apply -k infrastructure/cnpg/prd/
 ```
 
 ## Verification
