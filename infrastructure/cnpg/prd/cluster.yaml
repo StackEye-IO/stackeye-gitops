@@ -126,12 +126,6 @@ spec:
       - name: cnpg-default-monitoring
         key: queries
 
-  # Node selector - prefer compute nodes
-  nodeSelector:
-    kubernetes.io/arch: amd64
-    kubernetes.io/os: linux
-    node-type: compute
-
   # Affinity - spread across nodes
   affinity:
     podAntiAffinityType: preferred
