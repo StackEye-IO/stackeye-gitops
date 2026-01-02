@@ -4,18 +4,15 @@
 # API service
 api:
   image:
-    tag: "latest"  # Updated by CD on v*.*.* tags
-
+    tag: "v0.0.1" # Updated by CD on v*.*.* tags
 # Worker service
 worker:
   image:
-    tag: "latest"  # Updated by CD on v*.*.* tags
-
+    tag: "v0.0.1" # Updated by CD on v*.*.* tags
 # Web service
 web:
   image:
-    tag: "latest"  # Updated by CD on v*.*.* tags
-
+    tag: "latest" # Updated by CD on v*.*.* tags
 # Dev-specific overrides
 global:
   environment: dev
