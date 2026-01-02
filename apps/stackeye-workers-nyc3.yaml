@@ -61,7 +61,7 @@ spec:
       ref: values
   destination:
     server: https://rancher.support.tools/k8s/clusters/c-dk75c  # DOKS NYC3 via Rancher
-    namespace: stackeye-staging
+    namespace: stackeye-stg
   syncPolicy:
     automated:
       prune: true
@@ -95,7 +95,7 @@ spec:
       ref: values
   destination:
     server: https://rancher.support.tools/k8s/clusters/c-dk75c  # DOKS NYC3 via Rancher
-    namespace: stackeye
+    namespace: stackeye-prd
   syncPolicy:
     automated:
       prune: false
