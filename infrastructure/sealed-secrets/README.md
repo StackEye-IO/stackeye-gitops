@@ -127,7 +127,7 @@ KUBECONFIG=~/.kube/mattox/a1-ops-prd kubectl apply -f ~/.claude/secrets/sealed-s
 
 # 2. Restart the controller to pick up the key
 KUBECONFIG=~/.kube/mattox/a1-ops-prd kubectl delete pod -n kube-system \
-  -l app.kubernetes.io/name=sealed-secrets
+  -l name=sealed-secrets-controller
 
 # 3. Now sealed secrets can be decrypted
 ```
@@ -178,7 +178,7 @@ Check the controller logs:
 
 ```bash
 KUBECONFIG=~/.kube/mattox/a1-ops-prd kubectl logs -n kube-system \
-  -l app.kubernetes.io/name=sealed-secrets
+  -l name=sealed-secrets-controller
 ```
 
 ### "no key could decrypt secret" error
