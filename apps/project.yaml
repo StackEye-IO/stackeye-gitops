@@ -33,13 +33,13 @@ spec:
       server: https://rancher.support.tools/k8s/clusters/c-dk75c
     - namespace: stackeye
       server: https://rancher.support.tools/k8s/clusters/c-dk75c
-    # DOKS SFO3 - Workers (West Coast) - cluster ID TBD
+    # DOKS SFO3 - Workers (West Coast) via Rancher
     - namespace: stackeye-dev
-      server: https://stackeye-sfo3
+      server: https://rancher.support.tools/k8s/clusters/c-8wvc4
     - namespace: stackeye-staging
-      server: https://stackeye-sfo3
+      server: https://rancher.support.tools/k8s/clusters/c-8wvc4
     - namespace: stackeye
-      server: https://stackeye-sfo3
+      server: https://rancher.support.tools/k8s/clusters/c-8wvc4
 
   # Allow all cluster-scoped resources
   clusterResourceWhitelist:

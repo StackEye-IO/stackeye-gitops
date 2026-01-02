@@ -26,7 +26,7 @@ spec:
       targetRevision: main
       ref: values
   destination:
-    server: https://stackeye-sfo3  # DOKS SFO3
+    server: https://rancher.support.tools/k8s/clusters/c-8wvc4  # DOKS SFO3 via Rancher
     namespace: stackeye-dev
   syncPolicy:
     automated:
@@ -60,7 +60,7 @@ spec:
       targetRevision: main
       ref: values
   destination:
-    server: https://stackeye-sfo3  # DOKS SFO3
+    server: https://rancher.support.tools/k8s/clusters/c-8wvc4  # DOKS SFO3 via Rancher
     namespace: stackeye-staging
   syncPolicy:
     automated:
@@ -94,7 +94,7 @@ spec:
       targetRevision: main
       ref: values
   destination:
-    server: https://stackeye-sfo3  # DOKS SFO3
+    server: https://rancher.support.tools/k8s/clusters/c-8wvc4  # DOKS SFO3 via Rancher
     namespace: stackeye
   syncPolicy:
     automated:
