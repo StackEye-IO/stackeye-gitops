@@ -208,5 +208,8 @@ kubectl run test-latency --rm -it --image=postgres:17-alpine --restart=Never \
 |-----------|--------|-------|
 | PostgreSQL Tailscale Services | Active | All 3 environments |
 | Valkey Tailscale Services | Active | All 3 environments |
-| NYC3 Connector | Not Deployed | Required for worker access |
-| SFO3 Connector | Not Deployed | Required for worker access |
+| NYC3 Connector | Deployed | `stackeye-nyc3-egress` (100.112.85.33) |
+| SFO3 Connector | Deployed | `stackeye-sfo3-egress` (100.76.103.107) |
+
+**Note:** Subnet routes must be approved in Tailscale admin for pod connectivity.
+See `infrastructure/tailscale/README.md` for route approval instructions.

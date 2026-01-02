@@ -1,0 +1,41 @@
+# Tailscale Connector for stackeye-sfo3 cluster
+# Enables cluster-wide egress to Tailscale network for worker pods
+#
+# This allows all pods in the cluster to access services exposed via Tailscale:
+# - stackeye-db-dev, stackeye-db-stg, stackeye-db-prd (PostgreSQL)
+# - stackeye-valkey-dev, stackeye-valkey-stg, stackeye-valkey-prd (Valkey)
+#
+# Prerequisites:
+# - Tailscale operator must be installed (helm install tailscale-operator)
+# - MagicDNS must be enabled in Tailscale admin
+# - ACL must allow tag:stackeye-worker to access tag:stackeye-db and tag:stackeye-cache
+#
+# Apply with:
+#   KUBECONFIG=~/.kube/mattox/stackeye-sfo3 kubectl apply -f connector.yaml
+
+apiVersion: tailscale.com/v1alpha1
+kind: Connector
+metadata:
+  name: stackeye-egress
+  namespace: tailscale
+  labels:
+    app.kubernetes.io/name: stackeye
+    app.kubernetes.io/component: tailscale-connector
+    cluster: stackeye-sfo3
+spec:
+  # Tailnet hostname for this connector
+  hostname: stackeye-sfo3-egress
+
+  # Not an exit node - only provides access to tailnet services
+  exitNode: false
+
+  # Route Tailscale CGNAT range (100.64.0.0/10) for MagicDNS to work
+  # This allows pods to access Tailscale services via their MagicDNS hostnames
+  subnetRouter:
+    advertiseRoutes:
+      - 100.64.0.0/10
+
+  # Tags for ACL policy matching
+  # Workers connecting through this connector inherit tag:stackeye-worker permissions
+  tags:
+    - tag:stackeye-worker
