@@ -2,11 +2,11 @@ apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
 metadata:
   name: stackeye-db
-  namespace: stackeye
+  namespace: stackeye-prd
   labels:
     app.kubernetes.io/name: stackeye
     app.kubernetes.io/component: database
-    environment: prod
+    environment: prd
 spec:
   # Three instances for production (primary + 2 replicas)
   instances: 3

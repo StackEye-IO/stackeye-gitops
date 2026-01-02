@@ -6,7 +6,7 @@ metadata:
   labels:
     app.kubernetes.io/name: stackeye
     app.kubernetes.io/component: database
-    environment: staging
+    environment: stg
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
@@ -17,7 +17,7 @@ spec:
     path: infrastructure/cnpg/staging
   destination:
     server: https://kubernetes.default.svc
-    namespace: stackeye-staging
+    namespace: stackeye-stg
   syncPolicy:
     automated:
       prune: true

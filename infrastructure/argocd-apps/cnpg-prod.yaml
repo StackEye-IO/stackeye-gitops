@@ -6,7 +6,7 @@ metadata:
   labels:
     app.kubernetes.io/name: stackeye
     app.kubernetes.io/component: database
-    environment: prod
+    environment: prd
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
@@ -17,7 +17,7 @@ spec:
     path: infrastructure/cnpg/prod
   destination:
     server: https://kubernetes.default.svc
-    namespace: stackeye
+    namespace: stackeye-prd
   syncPolicy:
     automated:
       prune: true

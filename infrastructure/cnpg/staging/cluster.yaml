@@ -2,11 +2,11 @@ apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
 metadata:
   name: stackeye-db
-  namespace: stackeye-staging
+  namespace: stackeye-stg
   labels:
     app.kubernetes.io/name: stackeye
     app.kubernetes.io/component: database
-    environment: staging
+    environment: stg
 spec:
   # Two instances for staging (primary + replica)
   instances: 2
