@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: stackeye-valkey-tailscale
+  namespace: stackeye-stg
+  labels:
+    app.kubernetes.io/name: stackeye
+    app.kubernetes.io/component: cache
+    environment: stg
+  annotations:
+    tailscale.com/expose: "true"
+    tailscale.com/hostname: "stackeye-valkey-stg"
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/instance: stackeye-valkey
+    app.kubernetes.io/name: valkey
+  ports:
+    - name: valkey
+      port: 6379
+      targetPort: 6379
+      protocol: TCP

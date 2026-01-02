@@ -6,3 +6,4 @@ namespace: stackeye-prd
 resources:
   - valkey.yaml
   - service-lb.yaml
+  - service-tailscale.yaml

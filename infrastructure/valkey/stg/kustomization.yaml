@@ -6,3 +6,4 @@ namespace: stackeye-stg
 resources:
   - valkey.yaml
   - service-lb.yaml
+  - service-tailscale.yaml
