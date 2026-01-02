@@ -1,0 +1,175 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: stackeye-db
+  namespace: stackeye
+  labels:
+    app.kubernetes.io/name: stackeye
+    app.kubernetes.io/component: database
+    environment: prod
+spec:
+  # Three instances for production (primary + 2 replicas)
+  instances: 3
+
+  # TimescaleDB image via ImageCatalog
+  imageCatalogRef:
+    apiGroup: postgresql.cnpg.io
+    kind: ImageCatalog
+    major: 17
+    name: stackeye-timescaledb-catalog
+
+  # Harbor pull secret for private image
+  imagePullSecrets:
+    - name: harbor-supporttools
+
+  # TimescaleDB requires UID/GID 70
+  postgresUID: 70
+  postgresGID: 70
+
+  # PostgreSQL configuration
+  postgresql:
+    shared_preload_libraries:
+      - timescaledb
+    parameters:
+      # TimescaleDB tuning
+      max_connections: "200"
+      shared_buffers: "1GB"
+      effective_cache_size: "3GB"
+      work_mem: "16MB"
+      maintenance_work_mem: "256MB"
+      max_worker_processes: "32"
+      max_parallel_workers: "32"
+      # WAL settings
+      wal_level: logical
+      wal_log_hints: "on"
+      archive_mode: "on"
+      archive_timeout: "5min"
+      wal_keep_size: "512MB"
+      max_replication_slots: "32"
+      full_page_writes: "on"
+      # Dynamic shared memory
+      dynamic_shared_memory_type: posix
+      shared_memory_type: mmap
+      # Logging
+      log_destination: csvlog
+      log_directory: /controller/log
+      log_filename: postgres
+      log_rotation_age: "0"
+      log_rotation_size: "0"
+      log_truncate_on_rotation: "false"
+      logging_collector: "on"
+      # TLS
+      ssl_min_protocol_version: TLSv1.3
+      ssl_max_protocol_version: TLSv1.3
+      # Timeout settings
+      wal_receiver_timeout: "5s"
+      wal_sender_timeout: "5s"
+    syncReplicaElectionConstraint:
+      enabled: false
+
+  # Bootstrap with app database
+  bootstrap:
+    initdb:
+      database: stackeye
+      owner: stackeye
+      encoding: UTF8
+      localeCollate: C
+      localeCType: C
+
+  # Enable superuser access for admin tasks
+  enableSuperuserAccess: true
+  superuserSecret:
+    name: stackeye-db-superuser
+
+  # Storage
+  storage:
+    size: 32Gi
+    storageClass: longhorn
+    resizeInUseVolumes: true
+
+  # Resource limits for production
+  resources:
+    requests:
+      cpu: 1000m
+      memory: 2Gi
+    limits:
+      cpu: 4000m
+      memory: 4Gi
+
+  # Backup to Wasabi S3
+  backup:
+    barmanObjectStore:
+      destinationPath: s3://mattox-postgres-backups/a1-ops-prd/stackeye/prod
+      endpointURL: https://s3.us-central-1.wasabisys.com
+      s3Credentials:
+        accessKeyId:
+          name: postgres-backup-credentials
+          key: ACCESS_KEY_ID
+        secretAccessKey:
+          name: postgres-backup-credentials
+          key: SECRET_ACCESS_KEY
+      data:
+        compression: gzip
+        immediateCheckpoint: true
+        jobs: 2
+      wal:
+        compression: gzip
+        maxParallel: 8
+    retentionPolicy: "90d"
+    target: prefer-standby
+
+  # Monitoring
+  monitoring:
+    enablePodMonitor: true
+    disableDefaultQueries: false
+    customQueriesConfigMap:
+      - name: cnpg-default-monitoring
+        key: queries
+
+  # Node selector - prefer compute nodes
+  nodeSelector:
+    kubernetes.io/arch: amd64
+    kubernetes.io/os: linux
+    node-type: compute
+
+  # Affinity - spread across nodes
+  affinity:
+    podAntiAffinityType: preferred
+
+  # PDB enabled for HA
+  enablePDB: true
+
+  # Update strategy
+  primaryUpdateMethod: restart
+  primaryUpdateStrategy: unsupervised
+
+  # Timeouts - longer for production
+  startDelay: 3600
+  stopDelay: 1800
+  smartShutdownTimeout: 180
+  switchoverDelay: 3600
+  failoverDelay: 0
+
+  # Replication slots
+  replicationSlots:
+    highAvailability:
+      enabled: true
+      slotPrefix: _cnpg_
+    synchronizeReplicas:
+      enabled: true
+    updateInterval: 30
+
+  # Sync replicas
+  minSyncReplicas: 0
+  maxSyncReplicas: 0
+
+  # Liveness probes
+  probes:
+    liveness:
+      isolationCheck:
+        enabled: true
+        connectionTimeout: 1000
+        requestTimeout: 1000
+
+  # Log level
+  logLevel: info

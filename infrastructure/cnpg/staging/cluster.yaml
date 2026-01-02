@@ -1,0 +1,153 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: stackeye-db
+  namespace: stackeye-staging
+  labels:
+    app.kubernetes.io/name: stackeye
+    app.kubernetes.io/component: database
+    environment: staging
+spec:
+  # Two instances for staging (primary + replica)
+  instances: 2
+
+  # TimescaleDB image via ImageCatalog
+  imageCatalogRef:
+    apiGroup: postgresql.cnpg.io
+    kind: ImageCatalog
+    major: 17
+    name: stackeye-timescaledb-catalog
+
+  # Harbor pull secret for private image
+  imagePullSecrets:
+    - name: harbor-supporttools
+
+  # TimescaleDB requires UID/GID 70
+  postgresUID: 70
+  postgresGID: 70
+
+  # PostgreSQL configuration
+  postgresql:
+    shared_preload_libraries:
+      - timescaledb
+    parameters:
+      # TimescaleDB tuning
+      max_connections: "150"
+      shared_buffers: "512MB"
+      effective_cache_size: "1536MB"
+      work_mem: "12MB"
+      maintenance_work_mem: "256MB"
+      max_worker_processes: "16"
+      max_parallel_workers: "16"
+      # WAL settings
+      wal_level: logical
+      wal_log_hints: "on"
+      archive_mode: "on"
+      archive_timeout: "5min"
+      wal_keep_size: "256MB"
+      max_replication_slots: "16"
+      # Logging
+      log_destination: csvlog
+      log_directory: /controller/log
+      log_filename: postgres
+      logging_collector: "on"
+      # TLS
+      ssl_min_protocol_version: TLSv1.3
+      ssl_max_protocol_version: TLSv1.3
+    syncReplicaElectionConstraint:
+      enabled: false
+
+  # Bootstrap with app database
+  bootstrap:
+    initdb:
+      database: stackeye
+      owner: stackeye
+      encoding: UTF8
+      localeCollate: C
+      localeCType: C
+
+  # Enable superuser access for admin tasks
+  enableSuperuserAccess: true
+  superuserSecret:
+    name: stackeye-db-superuser
+
+  # Storage
+  storage:
+    size: 16Gi
+    storageClass: longhorn
+    resizeInUseVolumes: true
+
+  # Resource limits for staging
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 2000m
+      memory: 2Gi
+
+  # Backup to Wasabi S3
+  backup:
+    barmanObjectStore:
+      destinationPath: s3://mattox-postgres-backups/a1-ops-prd/stackeye/staging
+      endpointURL: https://s3.us-central-1.wasabisys.com
+      s3Credentials:
+        accessKeyId:
+          name: postgres-backup-credentials
+          key: ACCESS_KEY_ID
+        secretAccessKey:
+          name: postgres-backup-credentials
+          key: SECRET_ACCESS_KEY
+      data:
+        compression: gzip
+        immediateCheckpoint: true
+        jobs: 2
+      wal:
+        compression: gzip
+        maxParallel: 4
+    retentionPolicy: "60d"
+    target: prefer-standby
+
+  # Monitoring
+  monitoring:
+    enablePodMonitor: true
+    disableDefaultQueries: false
+    customQueriesConfigMap:
+      - name: cnpg-default-monitoring
+        key: queries
+
+  # Node selector
+  nodeSelector:
+    kubernetes.io/arch: amd64
+    kubernetes.io/os: linux
+
+  # Affinity
+  affinity:
+    podAntiAffinityType: preferred
+
+  # PDB enabled for HA
+  enablePDB: true
+
+  # Update strategy
+  primaryUpdateMethod: restart
+  primaryUpdateStrategy: unsupervised
+
+  # Timeouts
+  startDelay: 600
+  stopDelay: 600
+  smartShutdownTimeout: 120
+  switchoverDelay: 600
+  failoverDelay: 0
+
+  # Replication slots
+  replicationSlots:
+    highAvailability:
+      enabled: true
+      slotPrefix: _cnpg_
+    synchronizeReplicas:
+      enabled: true
+    updateInterval: 30
+
+  # Sync replicas
+  minSyncReplicas: 0
+  maxSyncReplicas: 0

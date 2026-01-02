@@ -1,0 +1,143 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: stackeye-db
+  namespace: stackeye-dev
+  labels:
+    app.kubernetes.io/name: stackeye
+    app.kubernetes.io/component: database
+    environment: dev
+spec:
+  # Single instance for dev
+  instances: 1
+
+  # TimescaleDB image via ImageCatalog
+  imageCatalogRef:
+    apiGroup: postgresql.cnpg.io
+    kind: ImageCatalog
+    major: 17
+    name: stackeye-timescaledb-catalog
+
+  # Harbor pull secret for private image
+  imagePullSecrets:
+    - name: harbor-supporttools
+
+  # TimescaleDB requires UID/GID 70
+  postgresUID: 70
+  postgresGID: 70
+
+  # PostgreSQL configuration
+  postgresql:
+    shared_preload_libraries:
+      - timescaledb
+    parameters:
+      # TimescaleDB tuning
+      max_connections: "100"
+      shared_buffers: "256MB"
+      effective_cache_size: "768MB"
+      work_mem: "8MB"
+      maintenance_work_mem: "128MB"
+      # WAL settings
+      wal_level: logical
+      wal_log_hints: "on"
+      archive_mode: "on"
+      archive_timeout: "5min"
+      # Logging
+      log_destination: csvlog
+      log_directory: /controller/log
+      log_filename: postgres
+      logging_collector: "on"
+      # TLS
+      ssl_min_protocol_version: TLSv1.3
+      ssl_max_protocol_version: TLSv1.3
+
+  # Bootstrap with app database
+  bootstrap:
+    initdb:
+      database: stackeye
+      owner: stackeye
+      encoding: UTF8
+      localeCollate: C
+      localeCType: C
+
+  # Enable superuser access for admin tasks
+  enableSuperuserAccess: true
+  superuserSecret:
+    name: stackeye-db-superuser
+
+  # Storage
+  storage:
+    size: 8Gi
+    storageClass: longhorn
+    resizeInUseVolumes: true
+
+  # Resource limits for dev
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+
+  # Backup to Wasabi S3
+  backup:
+    barmanObjectStore:
+      destinationPath: s3://mattox-postgres-backups/a1-ops-prd/stackeye/dev
+      endpointURL: https://s3.us-central-1.wasabisys.com
+      s3Credentials:
+        accessKeyId:
+          name: postgres-backup-credentials
+          key: ACCESS_KEY_ID
+        secretAccessKey:
+          name: postgres-backup-credentials
+          key: SECRET_ACCESS_KEY
+      data:
+        compression: gzip
+        immediateCheckpoint: true
+        jobs: 1
+      wal:
+        compression: gzip
+        maxParallel: 2
+    retentionPolicy: "30d"
+    target: prefer-standby
+
+  # Monitoring
+  monitoring:
+    enablePodMonitor: true
+    disableDefaultQueries: false
+    customQueriesConfigMap:
+      - name: cnpg-default-monitoring
+        key: queries
+
+  # Node selector
+  nodeSelector:
+    kubernetes.io/arch: amd64
+    kubernetes.io/os: linux
+
+  # Affinity
+  affinity:
+    podAntiAffinityType: preferred
+
+  # PDB disabled for single instance
+  enablePDB: false
+
+  # Update strategy
+  primaryUpdateMethod: restart
+  primaryUpdateStrategy: unsupervised
+
+  # Timeouts
+  startDelay: 300
+  stopDelay: 300
+  smartShutdownTimeout: 60
+  switchoverDelay: 300
+  failoverDelay: 0
+
+  # Replication slots
+  replicationSlots:
+    highAvailability:
+      enabled: true
+      slotPrefix: _cnpg_
+    synchronizeReplicas:
+      enabled: true
+    updateInterval: 30

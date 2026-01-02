@@ -1,0 +1,13 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: ImageCatalog
+metadata:
+  name: stackeye-timescaledb-catalog
+  namespace: stackeye
+  labels:
+    app.kubernetes.io/name: stackeye
+    app.kubernetes.io/component: database
+    environment: prod
+spec:
+  images:
+    - image: harbor.support.tools/nexmonyx/timescaledb-barman:2.23.0-pg17
+      major: 17
