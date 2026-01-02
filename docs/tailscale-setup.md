@@ -38,26 +38,27 @@ This document describes how to install Tailscale on the DOKS clusters (stackeye-
 2. **Tailnet Policy File** configured with required tags
 3. **OAuth credentials** for Kubernetes operator
 
-## Step 1: Configure Tailscale ACL Tags
+## Step 1: Configure Tailscale ACL Policy
 
-Add these tags to your Tailscale ACL policy file at https://login.tailscale.com/admin/acls:
+Apply the ACL policy from `docs/tailscale-acl.json` at https://login.tailscale.com/admin/acls
 
-```json
-{
-  "tagOwners": {
-    "tag:k8s-operator": ["autogroup:admin"],
-    "tag:k8s": ["tag:k8s-operator"],
-    "tag:stackeye-worker": ["tag:k8s-operator"]
-  },
-  "acls": [
-    {
-      "action": "accept",
-      "src": ["tag:stackeye-worker"],
-      "dst": ["tag:stackeye-db:5432", "tag:stackeye-cache:6379"]
-    }
-  ]
-}
-```
+**Required Tags:**
+
+| Tag | Purpose | Owner |
+|-----|---------|-------|
+| `tag:k8s-operator` | Kubernetes operators | autogroup:admin |
+| `tag:stackeye-worker` | Worker pods on DOKS | tag:k8s-operator |
+| `tag:stackeye-db` | PostgreSQL service | tag:k8s-operator |
+| `tag:stackeye-cache` | Valkey service | tag:k8s-operator |
+
+**ACL Rules:**
+
+| Source | Destination | Ports |
+|--------|-------------|-------|
+| tag:stackeye-worker | tag:stackeye-db | 5432 |
+| tag:stackeye-worker | tag:stackeye-cache | 6379 |
+
+See `docs/tailscale-acl.json` for the complete policy to copy into Tailscale admin.
 
 ## Step 2: Generate OAuth Credentials
 
@@ -122,7 +123,57 @@ After installation, verify nodes appear in Tailscale admin:
    - `tailscale-operator-stackeye-nyc3`
    - `tailscale-operator-stackeye-sfo3`
 
-## Step 6: Configure Worker Pods for Tailscale Access
+## Step 6: Expose PostgreSQL and Valkey via Tailscale (a1-ops-prd)
+
+The Tailscale operator on a1-ops-prd exposes internal services to the tailnet. Add these annotations to the PostgreSQL and Valkey services:
+
+### PostgreSQL Service
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: stackeye-postgresql
+  namespace: stackeye
+  annotations:
+    tailscale.com/expose: "true"
+    tailscale.com/hostname: "stackeye-db"
+    tailscale.com/tags: "tag:stackeye-db"
+spec:
+  type: ClusterIP
+  ports:
+    - port: 5432
+      targetPort: 5432
+  selector:
+    app: postgresql
+```
+
+### Valkey Service
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: stackeye-valkey
+  namespace: stackeye
+  annotations:
+    tailscale.com/expose: "true"
+    tailscale.com/hostname: "stackeye-cache"
+    tailscale.com/tags: "tag:stackeye-cache"
+spec:
+  type: ClusterIP
+  ports:
+    - port: 6379
+      targetPort: 6379
+  selector:
+    app: valkey
+```
+
+After applying, verify the services appear in Tailscale admin:
+- https://login.tailscale.com/admin/machines
+- Look for `stackeye-db` and `stackeye-cache`
+
+## Step 7: Configure Worker Pods for Tailscale Access
 
 Option A: Use Tailscale sidecar (recommended for pod-level access):
 
@@ -151,33 +202,40 @@ spec:
       - 10.0.0.0/8  # Your tailnet range
 ```
 
-## Step 7: Update Worker Configuration
+## Step 9: Update Worker Configuration
 
-Update the worker Helm values to use Tailscale DNS for database connection:
+Update the worker Helm values to use Tailscale MagicDNS for database connection:
 
 ```yaml
 # environments/prod/values.yaml
 worker:
   database:
-    host: "a1-ops-prd.tailnet-xxxx.ts.net"  # Use Tailscale MagicDNS
+    host: "stackeye-db"  # Tailscale MagicDNS hostname
     port: 5432
-  redis:
-    host: "a1-ops-prd.tailnet-xxxx.ts.net"
+  valkey:
+    host: "stackeye-cache"  # Tailscale MagicDNS hostname
     port: 6379
 ```
+
+**Note:** MagicDNS must be enabled in Tailscale admin (Settings → DNS → MagicDNS).
 
 ## Verification Commands
 
 ```bash
-# Check operator pods
-kubectl get pods -n tailscale
+# Check operator pods on each cluster
+KUBECONFIG=~/.kube/mattox/stackeye-nyc3 kubectl get pods -n tailscale
+KUBECONFIG=~/.kube/mattox/stackeye-sfo3 kubectl get pods -n tailscale
+KUBECONFIG=~/.kube/mattox/a1-ops-prd kubectl get pods -n tailscale
 
 # Check operator logs
-kubectl logs -n tailscale deployment/tailscale-operator
+kubectl logs -n tailscale deployment/operator
 
-# Test connectivity from a worker pod
+# Test connectivity from a worker pod (after deployment)
 kubectl exec -it deployment/stackeye-worker -n stackeye -- \
-  nc -zv a1-ops-prd.tailnet-xxxx.ts.net 5432
+  nc -zv stackeye-db 5432
+
+kubectl exec -it deployment/stackeye-worker -n stackeye -- \
+  nc -zv stackeye-cache 6379
 ```
 
 ## Troubleshooting
@@ -199,9 +257,22 @@ kubectl exec -it deployment/stackeye-worker -n stackeye -- \
 
 ## Related Tasks
 
-- Task #5977: Install Tailscale on stackeye-nyc3
-- Task #5978: Install Tailscale on stackeye-sfo3
-- Task #5979: Configure Tailscale ACLs
+- ✅ Task #5977: Install Tailscale on stackeye-nyc3 (Complete)
+- ✅ Task #5978: Install Tailscale on stackeye-sfo3 (Complete)
+- ✅ Task #5979: Configure Tailscale ACLs (Complete - see `docs/tailscale-acl.json`)
+
+## Current Status
+
+| Cluster | Tailscale Operator | Status |
+|---------|-------------------|--------|
+| stackeye-nyc3 | Installed | ✅ Running |
+| stackeye-sfo3 | Installed | ✅ Running |
+| a1-ops-prd | Installed | ✅ Running |
+
+**Next Steps:**
+1. Apply ACL policy from `docs/tailscale-acl.json` to Tailscale admin
+2. Deploy PostgreSQL and Valkey with Tailscale annotations (Step 6)
+3. Deploy workers with Tailscale connectivity
 
 ## References
 

@@ -1,0 +1,38 @@
+{
+  "// IMPORTANT": "This is a REFERENCE file. Apply this policy at https://login.tailscale.com/admin/acls",
+
+  "tagOwners": {
+    "tag:k8s-operator": ["autogroup:admin"],
+    "tag:k8s": ["tag:k8s-operator"],
+    "tag:stackeye-worker": ["tag:k8s-operator"],
+    "tag:stackeye-db": ["tag:k8s-operator"],
+    "tag:stackeye-cache": ["tag:k8s-operator"]
+  },
+
+  "acls": [
+    {
+      "// comment": "Allow StackEye workers to access PostgreSQL",
+      "action": "accept",
+      "src": ["tag:stackeye-worker"],
+      "dst": ["tag:stackeye-db:5432"]
+    },
+    {
+      "// comment": "Allow StackEye workers to access Valkey/Redis",
+      "action": "accept",
+      "src": ["tag:stackeye-worker"],
+      "dst": ["tag:stackeye-cache:6379"]
+    },
+    {
+      "// comment": "Allow admins full access (adjust as needed)",
+      "action": "accept",
+      "src": ["autogroup:admin"],
+      "dst": ["*:*"]
+    }
+  ],
+
+  "// usage": {
+    "workers_nyc3_sfo3": "Kubernetes operators auto-tag pods with tag:stackeye-worker",
+    "postgresql_service": "Exposed via Tailscale operator with tag:stackeye-db",
+    "valkey_service": "Exposed via Tailscale operator with tag:stackeye-cache"
+  }
+}
