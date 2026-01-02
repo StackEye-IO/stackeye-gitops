@@ -26,10 +26,18 @@ spec:
       server: https://kubernetes.default.svc
     - namespace: argocd
       server: https://kubernetes.default.svc
-    # DOKS NYC3 - Workers (East Coast)
+    # DOKS NYC3 - Workers (East Coast) via Rancher
+    - namespace: stackeye-dev
+      server: https://rancher.support.tools/k8s/clusters/c-dk75c
+    - namespace: stackeye-staging
+      server: https://rancher.support.tools/k8s/clusters/c-dk75c
     - namespace: stackeye
-      server: https://stackeye-nyc3
-    # DOKS SFO3 - Workers (West Coast)
+      server: https://rancher.support.tools/k8s/clusters/c-dk75c
+    # DOKS SFO3 - Workers (West Coast) - cluster ID TBD
+    - namespace: stackeye-dev
+      server: https://stackeye-sfo3
+    - namespace: stackeye-staging
+      server: https://stackeye-sfo3
     - namespace: stackeye
       server: https://stackeye-sfo3
 
