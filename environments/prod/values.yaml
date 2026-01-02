@@ -1,0 +1,21 @@
+# Production environment values
+# Updated automatically by CD pipeline on *-prod tag push
+
+# API service
+api:
+  image:
+    tag: "latest"  # Updated by CD on v*.*.*-prod tags
+
+# Worker service
+worker:
+  image:
+    tag: "latest"  # Updated by CD on v*.*.*-prod tags
+
+# Web service
+web:
+  image:
+    tag: "latest"  # Updated by CD on v*.*.*-prod tags
+
+# Production-specific overrides
+global:
+  environment: prod

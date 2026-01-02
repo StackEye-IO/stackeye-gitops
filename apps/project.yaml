@@ -1,0 +1,51 @@
+# ArgoCD Project for StackEye
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: stackeye
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  description: StackEye uptime monitoring platform
+
+  # Source repositories
+  sourceRepos:
+    - oci://harbor.support.tools/stackeye/charts
+    - https://github.com/StackEye-IO/stackeye-gitops
+
+  # Destination clusters and namespaces
+  destinations:
+    - namespace: stackeye-dev
+      server: https://kubernetes.default.svc
+    - namespace: stackeye-staging
+      server: https://kubernetes.default.svc
+    - namespace: stackeye
+      server: https://kubernetes.default.svc
+    - namespace: argocd
+      server: https://kubernetes.default.svc
+
+  # Allow all cluster-scoped resources
+  clusterResourceWhitelist:
+    - group: ''
+      kind: Namespace
+
+  # Allow all namespace-scoped resources
+  namespaceResourceWhitelist:
+    - group: '*'
+      kind: '*'
+
+  # Roles for project access
+  roles:
+    - name: admin
+      description: Full access to StackEye project
+      policies:
+        - p, proj:stackeye:admin, applications, *, stackeye/*, allow
+      groups:
+        - stackeye-admins
+    - name: readonly
+      description: Read-only access to StackEye project
+      policies:
+        - p, proj:stackeye:readonly, applications, get, stackeye/*, allow
+      groups:
+        - stackeye-viewers

@@ -1,0 +1,82 @@
+# ArgoCD Helm values for StackEye installation
+# Install with: helm install argocd argo/argo-cd -n argocd --create-namespace -f argocd/values.yaml
+
+global:
+  domain: argocd.stackeye.io
+
+server:
+  # Ingress configuration
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+      nginx.ingress.kubernetes.io/ssl-passthrough: "true"
+      nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+    hosts:
+      - argocd.stackeye.io
+    tls:
+      - secretName: argocd-tls
+        hosts:
+          - argocd.stackeye.io
+
+  # Extra args for server
+  extraArgs:
+    - --insecure  # TLS terminated at ingress
+
+# Repository credentials
+configs:
+  # Credential templates for Harbor OCI registry
+  credentialTemplates:
+    harbor-creds:
+      url: harbor.support.tools
+      username: ${HARBOR_USER}
+      password: ${HARBOR_PASSWORD}
+
+  # Repository configuration
+  repositories:
+    stackeye-charts:
+      url: oci://harbor.support.tools/stackeye/charts
+      name: stackeye-charts
+      type: helm
+      enableOCI: true
+    stackeye-gitops:
+      url: https://github.com/StackEye-IO/stackeye-gitops
+      name: stackeye-gitops
+      type: git
+
+  # ConfigMap settings
+  cm:
+    # Enable Helm OCI support
+    helm.valuesFileSchemes: >-
+      secrets+gpg-import, secrets+gpg-import-kubernetes,
+      secrets+age-import, secrets+age-import-kubernetes,
+      secrets, secrets+literal,
+      https, http
+
+  # RBAC configuration
+  rbac:
+    policy.default: role:readonly
+    policy.csv: |
+      p, role:admin, applications, *, */*, allow
+      p, role:admin, clusters, *, *, allow
+      p, role:admin, repositories, *, *, allow
+      p, role:admin, projects, *, *, allow
+      g, admin, role:admin
+
+# Redis HA for production
+redis-ha:
+  enabled: false  # Enable for HA deployments
+
+# Controller settings
+controller:
+  replicas: 1  # Increase for HA
+
+# Application Set controller
+applicationSet:
+  enabled: true
+
+# Notifications
+notifications:
+  enabled: true
+  # Configure Slack/email notifications as needed

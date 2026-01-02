@@ -1,0 +1,91 @@
+# ArgoCD Applications for stackeye-web across all environments
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: stackeye-web-dev
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: stackeye
+  sources:
+    - repoURL: oci://harbor.support.tools/stackeye/charts
+      chart: stackeye-web
+      targetRevision: 0.1.*
+      helm:
+        releaseName: stackeye-web
+        valueFiles:
+          - $values/environments/dev/values.yaml
+    - repoURL: https://github.com/StackEye-IO/stackeye-gitops
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: stackeye-dev
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: stackeye-web-staging
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: stackeye
+  sources:
+    - repoURL: oci://harbor.support.tools/stackeye/charts
+      chart: stackeye-web
+      targetRevision: 0.1.*
+      helm:
+        releaseName: stackeye-web
+        valueFiles:
+          - $values/environments/staging/values.yaml
+    - repoURL: https://github.com/StackEye-IO/stackeye-gitops
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: stackeye-staging
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: stackeye-web-prod
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: stackeye
+  sources:
+    - repoURL: oci://harbor.support.tools/stackeye/charts
+      chart: stackeye-web
+      targetRevision: 0.1.*
+      helm:
+        releaseName: stackeye-web
+        valueFiles:
+          - $values/environments/prod/values.yaml
+    - repoURL: https://github.com/StackEye-IO/stackeye-gitops
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: stackeye
+  syncPolicy:
+    automated:
+      prune: false
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

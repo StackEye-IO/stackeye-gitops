@@ -1,0 +1,21 @@
+# Development environment values
+# Updated automatically by CD pipeline on tag push
+
+# API service
+api:
+  image:
+    tag: "latest"  # Updated by CD on v*.*.* tags
+
+# Worker service
+worker:
+  image:
+    tag: "latest"  # Updated by CD on v*.*.* tags
+
+# Web service
+web:
+  image:
+    tag: "latest"  # Updated by CD on v*.*.* tags
+
+# Dev-specific overrides
+global:
+  environment: dev
