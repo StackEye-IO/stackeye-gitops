@@ -14,6 +14,32 @@ This directory contains documentation for the Sealed Secrets controller deployed
 | Service | sealed-secrets-controller:8080 | kube-system |
 | Metrics | sealed-secrets-controller-metrics:8081 | kube-system |
 
+## Installing kubeseal CLI
+
+The `kubeseal` CLI is required to seal secrets locally before committing to git.
+
+### Linux
+
+```bash
+# Get latest version
+KUBESEAL_VERSION=$(curl -s https://api.github.com/repos/bitnami-labs/sealed-secrets/releases/latest | jq -r .tag_name | cut -c 2-)
+
+# Download and install
+curl -OL "https://github.com/bitnami-labs/sealed-secrets/releases/download/v${KUBESEAL_VERSION}/kubeseal-${KUBESEAL_VERSION}-linux-amd64.tar.gz"
+tar -xzf kubeseal-${KUBESEAL_VERSION}-linux-amd64.tar.gz kubeseal
+sudo install -m 755 kubeseal /usr/local/bin/kubeseal
+rm kubeseal kubeseal-${KUBESEAL_VERSION}-linux-amd64.tar.gz
+
+# Verify
+kubeseal --version
+```
+
+### macOS
+
+```bash
+brew install kubeseal
+```
+
 ## Quick Start
 
 ### 1. Create a regular Kubernetes secret
