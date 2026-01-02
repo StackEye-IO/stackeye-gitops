@@ -6,3 +6,4 @@ namespace: stackeye-prd
 resources:
   - image-catalog.yaml
   - cluster.yaml
+  - service-lb.yaml

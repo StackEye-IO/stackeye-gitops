@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: stackeye-db-rw-lb
+  namespace: stackeye-stg
+  labels:
+    app.kubernetes.io/name: stackeye
+    app.kubernetes.io/component: database
+    environment: stg
+spec:
+  type: LoadBalancer
+  selector:
+    cnpg.io/cluster: stackeye-db
+    role: primary
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432
+      protocol: TCP
