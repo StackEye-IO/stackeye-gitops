@@ -14,7 +14,7 @@ This directory contains documentation for the Sealed Secrets controllers deploye
 |---------|--------|------------|-------------|-------------------|
 | a1-ops-prd | Running | `~/.kube/mattox/a1-ops-prd` | `sealed-secrets-cert.pem` | `sealed-secrets-master-key.yaml` |
 | stackeye-nyc3 | Running | `~/.kube/mattox/stackeye-nyc3` | `sealed-secrets-cert-nyc3.pem` | `sealed-secrets-master-key-nyc3.yaml` |
-| stackeye-sfo3 | Pending | `~/.kube/mattox/stackeye-sfo3` | `sealed-secrets-cert-sfo3.pem` | `sealed-secrets-master-key-sfo3.yaml` |
+| stackeye-sfo3 | Running | `~/.kube/mattox/stackeye-sfo3` | `sealed-secrets-cert-sfo3.pem` | `sealed-secrets-master-key-sfo3.yaml` |
 
 All files are stored in `~/.claude/secrets/`.
 
