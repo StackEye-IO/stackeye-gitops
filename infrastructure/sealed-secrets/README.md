@@ -1,18 +1,22 @@
 # Sealed Secrets for StackEye
 
-This directory contains documentation for the Sealed Secrets controller deployed on a1-ops-prd cluster for GitOps-friendly secret management.
+This directory contains documentation for the Sealed Secrets controllers deployed across StackEye clusters for GitOps-friendly secret management.
 
 ## Overview
 
 [Sealed Secrets](https://github.com/bitnami-labs/sealed-secrets) allows you to encrypt Kubernetes secrets so they can be safely stored in git. Only the controller running in the cluster can decrypt them.
 
-## Current Deployment
+**IMPORTANT**: Each cluster has its own sealed-secrets controller with unique encryption keys. A sealed secret created for one cluster CANNOT be decrypted by another cluster.
 
-| Component | Status | Namespace |
-|-----------|--------|-----------|
-| sealed-secrets-controller | Running | kube-system |
-| Service | sealed-secrets-controller:8080 | kube-system |
-| Metrics | sealed-secrets-controller-metrics:8081 | kube-system |
+## Current Deployments
+
+| Cluster | Status | Kubeconfig | Certificate | Master Key Backup |
+|---------|--------|------------|-------------|-------------------|
+| a1-ops-prd | Running | `~/.kube/mattox/a1-ops-prd` | `sealed-secrets-cert.pem` | `sealed-secrets-master-key.yaml` |
+| stackeye-nyc3 | Running | `~/.kube/mattox/stackeye-nyc3` | `sealed-secrets-cert-nyc3.pem` | `sealed-secrets-master-key-nyc3.yaml` |
+| stackeye-sfo3 | Pending | `~/.kube/mattox/stackeye-sfo3` | `sealed-secrets-cert-sfo3.pem` | `sealed-secrets-master-key-sfo3.yaml` |
+
+All files are stored in `~/.claude/secrets/`.
 
 ## Installing kubeseal CLI
 
@@ -69,10 +73,43 @@ The controller will automatically decrypt it and create the actual Secret.
 
 ## Important Files
 
+All files are stored in `~/.claude/secrets/`:
+
+### a1-ops-prd (On-Prem)
 | File | Description |
 |------|-------------|
-| `~/.claude/secrets/sealed-secrets-master-key.yaml` | Master key backup (CRITICAL - keep secure) |
-| `~/.claude/secrets/sealed-secrets-cert.pem` | Public certificate for sealing secrets |
+| `sealed-secrets-master-key.yaml` | Master key backup (CRITICAL) |
+| `sealed-secrets-cert.pem` | Public certificate for sealing |
+
+### stackeye-nyc3 (DOKS East Coast)
+| File | Description |
+|------|-------------|
+| `sealed-secrets-master-key-nyc3.yaml` | Master key backup (CRITICAL) |
+| `sealed-secrets-cert-nyc3.pem` | Public certificate for sealing |
+
+### stackeye-sfo3 (DOKS West Coast)
+| File | Description |
+|------|-------------|
+| `sealed-secrets-master-key-sfo3.yaml` | Master key backup (CRITICAL) |
+| `sealed-secrets-cert-sfo3.pem` | Public certificate for sealing |
+
+## Sealing Secrets for Specific Clusters
+
+Since each cluster has its own encryption keys, you must use the correct certificate:
+
+```bash
+# For a1-ops-prd (API server, databases)
+kubeseal --cert ~/.claude/secrets/sealed-secrets-cert.pem \
+  --format=yaml < secret.yaml > sealed-secret-a1.yaml
+
+# For stackeye-nyc3 (NYC workers)
+kubeseal --cert ~/.claude/secrets/sealed-secrets-cert-nyc3.pem \
+  --format=yaml < secret.yaml > sealed-secret-nyc3.yaml
+
+# For stackeye-sfo3 (SFO workers)
+kubeseal --cert ~/.claude/secrets/sealed-secrets-cert-sfo3.pem \
+  --format=yaml < secret.yaml > sealed-secret-sfo3.yaml
+```
 
 ## Sealing Secrets for Specific Namespaces
 
