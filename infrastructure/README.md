@@ -53,7 +53,7 @@ done
 
 ## Deployment
 
-### Manual Deployment
+These databases are **managed directly** (not via ArgoCD/Helm).
 
 ```bash
 # Create namespaces
@@ -67,14 +67,6 @@ kubectl apply -k infrastructure/cnpg/staging/
 
 # Deploy prd cluster
 kubectl apply -k infrastructure/cnpg/prod/
-```
-
-### ArgoCD Deployment
-
-Apply the ArgoCD Application:
-
-```bash
-kubectl apply -f infrastructure/argocd-apps/
 ```
 
 ## Verification
