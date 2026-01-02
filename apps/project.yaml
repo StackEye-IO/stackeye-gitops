@@ -1,4 +1,5 @@
 # ArgoCD Project for StackEye
+# Multi-cluster deployment: API on-prem, Workers on DOKS
 apiVersion: argoproj.io/v1alpha1
 kind: AppProject
 metadata:
@@ -16,6 +17,7 @@ spec:
 
   # Destination clusters and namespaces
   destinations:
+    # On-prem cluster (a1-ops-prd) - API, ArgoCD
     - namespace: stackeye-dev
       server: https://kubernetes.default.svc
     - namespace: stackeye-staging
@@ -24,6 +26,12 @@ spec:
       server: https://kubernetes.default.svc
     - namespace: argocd
       server: https://kubernetes.default.svc
+    # DOKS NYC3 - Workers (East Coast)
+    - namespace: stackeye
+      server: https://stackeye-nyc3
+    # DOKS SFO3 - Workers (West Coast)
+    - namespace: stackeye
+      server: https://stackeye-sfo3
 
   # Allow all cluster-scoped resources
   clusterResourceWhitelist:

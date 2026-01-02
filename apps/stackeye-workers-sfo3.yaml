@@ -1,10 +1,10 @@
-# ArgoCD Applications for stackeye-api across all environments
-# Deploys to on-prem cluster (a1-ops-prd)
+# ArgoCD Applications for stackeye-worker on DOKS SFO3 (West Coast)
+# Workers connect to on-prem PostgreSQL/Valkey via Tailscale
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: stackeye-api-dev
+  name: stackeye-worker-sfo3-dev
   namespace: argocd
   finalizers:
     - resources-finalizer.argocd.argoproj.io
@@ -12,17 +12,21 @@ spec:
   project: stackeye
   sources:
     - repoURL: oci://harbor.support.tools/stackeye/charts
-      chart: stackeye-api
+      chart: stackeye-worker
       targetRevision: 0.1.*
       helm:
-        releaseName: stackeye-api
+        releaseName: stackeye-worker
         valueFiles:
           - $values/environments/dev/values.yaml
+        values: |
+          worker:
+            region: sfo3
+            regionName: "San Francisco"
     - repoURL: https://github.com/StackEye-IO/stackeye-gitops
       targetRevision: main
       ref: values
   destination:
-    server: https://kubernetes.default.svc  # On-prem (a1-ops-prd)
+    server: https://stackeye-sfo3  # DOKS SFO3
     namespace: stackeye-dev
   syncPolicy:
     automated:
@@ -34,7 +38,7 @@ spec:
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: stackeye-api-staging
+  name: stackeye-worker-sfo3-staging
   namespace: argocd
   finalizers:
     - resources-finalizer.argocd.argoproj.io
@@ -42,17 +46,21 @@ spec:
   project: stackeye
   sources:
     - repoURL: oci://harbor.support.tools/stackeye/charts
-      chart: stackeye-api
+      chart: stackeye-worker
       targetRevision: 0.1.*
       helm:
-        releaseName: stackeye-api
+        releaseName: stackeye-worker
         valueFiles:
           - $values/environments/staging/values.yaml
+        values: |
+          worker:
+            region: sfo3
+            regionName: "San Francisco"
     - repoURL: https://github.com/StackEye-IO/stackeye-gitops
       targetRevision: main
       ref: values
   destination:
-    server: https://kubernetes.default.svc  # On-prem (a1-ops-prd)
+    server: https://stackeye-sfo3  # DOKS SFO3
     namespace: stackeye-staging
   syncPolicy:
     automated:
@@ -64,7 +72,7 @@ spec:
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: stackeye-api-prod
+  name: stackeye-worker-sfo3-prod
   namespace: argocd
   finalizers:
     - resources-finalizer.argocd.argoproj.io
@@ -72,21 +80,25 @@ spec:
   project: stackeye
   sources:
     - repoURL: oci://harbor.support.tools/stackeye/charts
-      chart: stackeye-api
+      chart: stackeye-worker
       targetRevision: 0.1.*
       helm:
-        releaseName: stackeye-api
+        releaseName: stackeye-worker
         valueFiles:
           - $values/environments/prod/values.yaml
+        values: |
+          worker:
+            region: sfo3
+            regionName: "San Francisco"
     - repoURL: https://github.com/StackEye-IO/stackeye-gitops
       targetRevision: main
       ref: values
   destination:
-    server: https://kubernetes.default.svc  # On-prem (a1-ops-prd)
+    server: https://stackeye-sfo3  # DOKS SFO3
     namespace: stackeye
   syncPolicy:
     automated:
-      prune: false  # More careful in prod
+      prune: false
       selfHeal: true
     syncOptions:
       - CreateNamespace=true

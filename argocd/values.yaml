@@ -1,5 +1,10 @@
 # ArgoCD Helm values for StackEye installation
 # Install with: helm install argocd argo/argo-cd -n argocd --create-namespace -f argocd/values.yaml
+#
+# Multi-cluster setup:
+# - ArgoCD runs on a1-ops-prd (on-prem)
+# - Manages remote DOKS clusters (nyc3, sfo3) for workers
+# - API deploys locally, workers deploy to remote clusters
 
 global:
   domain: argocd.stackeye.io
@@ -44,6 +49,35 @@ configs:
       url: https://github.com/StackEye-IO/stackeye-gitops
       name: stackeye-gitops
       type: git
+
+  # Remote cluster credentials (DOKS)
+  # These are added via `argocd cluster add` command or as secrets
+  # See: https://argo-cd.readthedocs.io/en/stable/operator-manual/declarative-setup/#clusters
+  clusterCredentials:
+    # DOKS NYC3 - Workers (East Coast)
+    - name: stackeye-nyc3
+      server: https://stackeye-nyc3
+      labels:
+        region: nyc3
+        purpose: workers
+      config:
+        # Token and CA data injected via Sealed Secret
+        # bearerToken: ${DOKS_NYC3_TOKEN}
+        # tlsClientConfig:
+        #   caData: ${DOKS_NYC3_CA}
+        #   insecure: false
+    # DOKS SFO3 - Workers (West Coast)
+    - name: stackeye-sfo3
+      server: https://stackeye-sfo3
+      labels:
+        region: sfo3
+        purpose: workers
+      config:
+        # Token and CA data injected via Sealed Secret
+        # bearerToken: ${DOKS_SFO3_TOKEN}
+        # tlsClientConfig:
+        #   caData: ${DOKS_SFO3_CA}
+        #   insecure: false
 
   # ConfigMap settings
   cm:

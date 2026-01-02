@@ -5,34 +5,37 @@ GitOps repository for StackEye Kubernetes deployments, managed by ArgoCD.
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│ Developer pushes tag: v1.2.3 or v1.2.3-staging or v1.2.3-prod  │
-└─────────────────────────────┬───────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│ GitHub Actions (stackeye/ or stackeye-web/)                     │
-│ 1. Build Docker image                                           │
-│ 2. Push to Harbor: stackeye/api:v1.2.3                         │
-│ 3. Update this repo with new image tag                         │
-└─────────────────────────────┬───────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│ This Repository (stackeye-gitops)                               │
-│ └── environments/                                               │
-│     ├── dev/values.yaml       ← v1.2.3 (default tags)          │
-│     ├── staging/values.yaml   ← v1.2.3-staging tags            │
-│     └── prod/values.yaml      ← v1.2.3-prod tags               │
-└─────────────────────────────┬───────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│ ArgoCD (watches this repo)                                      │
-│ - Detects value changes                                         │
-│ - Syncs Kubernetes resources                                    │
-│ - Provides rollback and drift detection                        │
-└─────────────────────────────────────────────────────────────────┘
+                    ┌─────────────────────────────────┐
+                    │       Cloudflare Pages          │
+                    │     (Web Frontend - Free)       │
+                    │      app.stackeye.io            │
+                    └───────────────┬─────────────────┘
+                                    │ API calls
+                                    ▼
+┌───────────────────────────────────────────────────────────────────┐
+│                     a1-ops-prd (On-Prem - Free)                   │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌──────────┐ │
+│  │   ArgoCD    │  │  API Server │  │    CNPG     │  │  Valkey  │ │
+│  │ (multi-     │  │ api.stack-  │  │ PostgreSQL  │  │  Cache   │ │
+│  │  cluster)   │  │  eye.io     │  │             │  │          │ │
+│  └──────┬──────┘  └─────────────┘  └─────────────┘  └──────────┘ │
+│         │ manages                                                 │
+└─────────┼─────────────────────────────────────────────────────────┘
+          │
+    ┌─────┴─────────────────────────────┐
+    │                                   │
+    ▼                                   ▼
+┌─────────────────────┐     ┌─────────────────────┐
+│  stackeye-nyc3      │     │  stackeye-sfo3      │
+│  DOKS ($64/mo)      │     │  DOKS ($64/mo)      │
+│  ┌───────────────┐  │     │  ┌───────────────┐  │
+│  │    Workers    │  │     │  │    Workers    │  │
+│  │  (East Coast) │  │     │  │  (West Coast) │  │
+│  │   region=nyc3 │  │     │  │   region=sfo3 │  │
+│  └───────────────┘  │     │  └───────────────┘  │
+└─────────────────────┘     └─────────────────────┘
+
+Total Monthly Cost: ~$128/mo
 ```
 
 ## Repository Structure
@@ -40,21 +43,40 @@ GitOps repository for StackEye Kubernetes deployments, managed by ArgoCD.
 ```
 stackeye-gitops/
 ├── apps/
-│   ├── project.yaml          # ArgoCD AppProject
-│   ├── stackeye-api.yaml     # API Applications (dev, staging, prod)
-│   ├── stackeye-worker.yaml  # Worker Applications
-│   └── stackeye-web.yaml     # Web Applications
+│   ├── project.yaml              # ArgoCD AppProject
+│   ├── stackeye-api.yaml         # API → on-prem (dev, staging, prod)
+│   ├── stackeye-workers-nyc3.yaml # Workers → DOKS NYC3
+│   └── stackeye-workers-sfo3.yaml # Workers → DOKS SFO3
 ├── argocd/
-│   └── values.yaml           # ArgoCD installation config
+│   └── values.yaml               # ArgoCD installation config
 ├── environments/
 │   ├── dev/
-│   │   └── values.yaml       # Dev image tags
+│   │   └── values.yaml           # Dev image tags
 │   ├── staging/
-│   │   └── values.yaml       # Staging image tags
+│   │   └── values.yaml           # Staging image tags
 │   └── prod/
-│       └── values.yaml       # Prod image tags
+│       └── values.yaml           # Prod image tags
 └── README.md
 ```
+
+## Cluster Topology
+
+| Cluster | Purpose | Cost |
+|---------|---------|------|
+| a1-ops-prd (on-prem) | API, ArgoCD, PostgreSQL, Valkey | Free |
+| stackeye-nyc3 (DOKS) | Workers - East Coast | $64/mo |
+| stackeye-sfo3 (DOKS) | Workers - West Coast | $64/mo |
+
+**Web Frontend**: Deployed to Cloudflare Pages (Free)
+
+## Network Connectivity
+
+| Source | Destination | Method |
+|--------|-------------|--------|
+| Cloudflare Pages | API (a1-ops-prd) | Public HTTPS (api.stackeye.io) |
+| Workers (NYC3) | PostgreSQL (a1-ops-prd) | Tailscale VPN |
+| Workers (SFO3) | PostgreSQL (a1-ops-prd) | Tailscale VPN |
+| ArgoCD (a1-ops-prd) | DOKS clusters | ServiceAccount tokens |
 
 ## Tag Convention
 
@@ -69,6 +91,7 @@ stackeye-gitops/
 - Kubernetes 1.28+
 - Helm 3.14+
 - ArgoCD 2.10+
+- Tailscale installed on DOKS worker nodes
 
 ## ArgoCD Installation
 
@@ -77,7 +100,7 @@ stackeye-gitops/
 helm repo add argo https://argoproj.github.io/argo-helm
 helm repo update
 
-# Install ArgoCD
+# Install ArgoCD on a1-ops-prd
 helm install argocd argo/argo-cd -n argocd --create-namespace \
   -f argocd/values.yaml
 
@@ -88,9 +111,25 @@ kubectl wait --for=condition=available deployment/argocd-server -n argocd --time
 kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
 ```
 
+## Add Remote Clusters
+
+After ArgoCD is installed, add the DOKS clusters:
+
+```bash
+# Login to ArgoCD
+argocd login argocd.stackeye.io
+
+# Add DOKS clusters (uses kubeconfig context)
+argocd cluster add stackeye-nyc3 --kubeconfig ~/.kube/mattox/stackeye-nyc3
+argocd cluster add stackeye-sfo3 --kubeconfig ~/.kube/mattox/stackeye-sfo3
+
+# Verify clusters
+argocd cluster list
+```
+
 ## Bootstrap Applications
 
-After ArgoCD is installed, apply the project and applications:
+After ArgoCD is installed and clusters are added:
 
 ```bash
 # Create the StackEye project
@@ -98,8 +137,8 @@ kubectl apply -f apps/project.yaml
 
 # Create all applications
 kubectl apply -f apps/stackeye-api.yaml
-kubectl apply -f apps/stackeye-worker.yaml
-kubectl apply -f apps/stackeye-web.yaml
+kubectl apply -f apps/stackeye-workers-nyc3.yaml
+kubectl apply -f apps/stackeye-workers-sfo3.yaml
 ```
 
 ## Deployment Workflow
@@ -107,7 +146,7 @@ kubectl apply -f apps/stackeye-web.yaml
 ### Deploy to Dev (automatic on any v*.*.* tag)
 
 ```bash
-cd stackeye/  # or stackeye-web/
+cd stackeye/
 git tag v1.2.3
 git push origin v1.2.3
 ```
@@ -132,6 +171,8 @@ git push origin v1.2.3-prod
 
 ```bash
 argocd app sync stackeye-api-prod
+argocd app sync stackeye-worker-nyc3-prod
+argocd app sync stackeye-worker-sfo3-prod
 ```
 
 ### Rollback
@@ -145,6 +186,8 @@ argocd app rollback stackeye-api-prod
 ```bash
 argocd app list
 argocd app get stackeye-api-prod
+argocd app get stackeye-worker-nyc3-prod
+argocd app get stackeye-worker-sfo3-prod
 ```
 
 ## Related Repositories
@@ -152,7 +195,7 @@ argocd app get stackeye-api-prod
 | Repository | Purpose |
 |------------|---------|
 | [stackeye](https://github.com/StackEye-IO/stackeye) | Backend API + Worker |
-| [stackeye-web](https://github.com/StackEye-IO/stackeye-web) | Frontend dashboard |
+| [stackeye-web](https://github.com/StackEye-IO/stackeye-web) | Frontend (Cloudflare Pages) |
 | [stackeye-deploy](https://github.com/StackEye-IO/stackeye-deploy) | Helm charts |
 
 ## License
