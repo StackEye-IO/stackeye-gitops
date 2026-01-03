@@ -1,37 +1,27 @@
 # Development environment values
 # Updated automatically by CD pipeline on tag push
 
-# API service
-api:
-  image:
-    repository: harbor.support.tools/stackeye-io/api
-    tag: "0.1.0" # Updated by CD on v*.*.* tags
-# Worker service
-worker:
-  image:
-    tag: "0.1.0" # Updated by CD on v*.*.* tags
-  # Tailscale sidecar for database connectivity via Tailscale network
-  # Enables connection to stackeye-db-dev and stackeye-valkey-dev on a1-ops-prd
-  tailscale:
-    enabled: true
-    image:
-      repository: tailscale/tailscale
-      tag: latest
-    authSecretName: tailscale-auth
-    authSecretKey: authkey
-    userspace: true
-    acceptRoutes: true
-    resources:
-      requests:
-        cpu: 10m
-        memory: 64Mi
-      limits:
-        cpu: 100m
-        memory: 128Mi
-# Web service
-web:
-  image:
-    tag: "latest" # Updated by CD on v*.*.* tags
-# Dev-specific overrides
+# Image overrides (chart uses root-level keys)
+image:
+  repository: harbor.support.tools/stackeye-io/api
+  tag: "0.1.0"
+
+# Disable SealedSecrets - we manage secrets externally
+sealedSecrets:
+  enabled: false
+
+# Dev-specific ingress (use dev subdomain)
+ingress:
+  hosts:
+    - host: api-dev.stackeye.io
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: stackeye-api-dev-tls
+      hosts:
+        - api-dev.stackeye.io
+
+# Dev environment identifier
 global:
   environment: dev
