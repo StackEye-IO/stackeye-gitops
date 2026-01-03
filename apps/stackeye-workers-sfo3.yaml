@@ -11,7 +11,7 @@ metadata:
 spec:
   project: stackeye
   sources:
-    - repoURL: oci://harbor.support.tools/stackeye/charts
+    - repoURL: oci://harbor.support.tools/stackeye-io/charts
       chart: stackeye-worker
       targetRevision: 0.1.*
       helm:
@@ -45,7 +45,7 @@ metadata:
 spec:
   project: stackeye
   sources:
-    - repoURL: oci://harbor.support.tools/stackeye/charts
+    - repoURL: oci://harbor.support.tools/stackeye-io/charts
       chart: stackeye-worker
       targetRevision: 0.1.*
       helm:
@@ -79,7 +79,7 @@ metadata:
 spec:
   project: stackeye
   sources:
-    - repoURL: oci://harbor.support.tools/stackeye/charts
+    - repoURL: oci://harbor.support.tools/stackeye-io/charts
       chart: stackeye-worker
       targetRevision: 0.1.*
       helm:
