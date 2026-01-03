@@ -12,7 +12,8 @@ spec:
 
   # Source repositories
   sourceRepos:
-    - oci://harbor.support.tools/stackeye-io/charts
+    - oci://harbor.support.tools/stackeye-io/charts/stackeye-api
+    - oci://harbor.support.tools/stackeye-io/charts/stackeye-worker
     - https://github.com/StackEye-IO/stackeye-gitops
 
   # Destination clusters and namespaces

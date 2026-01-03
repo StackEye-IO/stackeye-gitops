@@ -4,6 +4,7 @@
 # API service
 api:
   image:
+    repository: harbor.support.tools/stackeye-io/api
     tag: "0.1.0" # Updated by CD on v*.*.* tags
 # Worker service
 worker:
