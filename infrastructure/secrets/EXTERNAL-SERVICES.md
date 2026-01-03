@@ -5,7 +5,7 @@ This guide covers setting up external services for StackEye and creating their s
 ## Table of Contents
 
 1. [Stripe (Billing)](#stripe-billing)
-2. [Resend (Email)](#resend-email)
+2. [AWS SES (Email)](#aws-ses-email)
 3. [Twilio (SMS)](#twilio-sms)
 4. [Auth0 (Authentication)](#auth0-authentication)
 
@@ -91,41 +91,79 @@ For each product, create a recurring price with the monthly amount.
 
 ---
 
-## Resend (Email)
+## AWS SES (Email)
 
-Resend handles transactional emails (alerts, invitations, password resets).
+AWS Simple Email Service handles transactional emails (alerts, invitations, password resets).
 
-### 1. Create Resend Account
+### 1. Set Up AWS SES
 
-1. Go to [https://resend.com/signup](https://resend.com/signup)
-2. Complete registration
+1. Go to [AWS SES Console](https://console.aws.amazon.com/ses/)
+2. Select your preferred region (us-east-1 recommended for best deliverability)
 
 ### 2. Verify Domain
 
-1. Go to [https://resend.com/domains](https://resend.com/domains)
-2. Click "Add Domain"
+1. Go to **Identities** → **Create identity**
+2. Select **Domain**
 3. Enter: `stackeye.io`
-4. Add the DNS records shown (SPF, DKIM, DMARC)
-5. Wait for verification (usually 5-10 minutes)
+4. Enable **Easy DKIM** (recommended)
+5. Add the DNS records shown:
+   - 3 CNAME records for DKIM
+   - Optional: Custom MAIL FROM subdomain
+6. Wait for verification (usually 24-72 hours)
 
-### 3. Get API Key
+### 3. Request Production Access
 
-1. Go to [https://resend.com/api-keys](https://resend.com/api-keys)
-2. Click "Create API Key"
-3. Name: `stackeye-production`
-4. Permission: "Sending access"
-5. Domain: `stackeye.io`
-6. Copy the API key: `re_...`
+**Note**: New AWS accounts start in sandbox mode (can only send to verified emails).
 
-### 4. Create Sealed Secret
+1. Go to **Account dashboard**
+2. Click **Request production access**
+3. Fill out the form:
+   - **Mail type**: Transactional
+   - **Website URL**: https://stackeye.io
+   - **Use case description**: Uptime monitoring alerts, team invitations, password resets
+   - **Expected volume**: Start with 1,000/day, scale as needed
+4. Wait for approval (typically 24-48 hours)
+
+### 4. Create IAM User for SES
+
+1. Go to [IAM Console](https://console.aws.amazon.com/iam/)
+2. Click **Users** → **Create user**
+3. Name: `stackeye-ses-sender`
+4. Attach policy: `AmazonSESFullAccess` (or create custom policy below)
+5. Create access keys for programmatic access
+6. Copy **Access Key ID** and **Secret Access Key**
+
+**Custom IAM Policy (recommended for least-privilege)**:
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ses:SendEmail",
+        "ses:SendRawEmail"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "ses:FromAddress": "noreply@stackeye.io"
+        }
+      }
+    }
+  ]
+}
+```
+
+### 5. Create Sealed Secret
 
 ```bash
 # Create plaintext secret
-cat > /tmp/email-secrets.yaml <<EOF
+cat > /tmp/ses-secrets.yaml <<EOF
 apiVersion: v1
 kind: Secret
 metadata:
-  name: stackeye-email-secrets
+  name: stackeye-ses-secrets
   namespace: stackeye-prd
   labels:
     app.kubernetes.io/name: stackeye
@@ -133,7 +171,9 @@ metadata:
     environment: prd
 type: Opaque
 stringData:
-  EMAIL_API_KEY: "re_YOUR_API_KEY"
+  AWS_ACCESS_KEY_ID: "AKIA..."
+  AWS_SECRET_ACCESS_KEY: "your-secret-key"
+  AWS_REGION: "us-east-1"
   EMAIL_FROM_NAME: "StackEye"
   EMAIL_FROM_EMAIL: "noreply@stackeye.io"
 EOF
@@ -141,14 +181,28 @@ EOF
 # Seal the secret
 kubeseal --format=yaml \
   --cert ~/.claude/secrets/sealed-secrets-cert.pem \
-  < /tmp/email-secrets.yaml > infrastructure/secrets/a1-ops-prd/sealed-email-secrets-prd.yaml
+  < /tmp/ses-secrets.yaml > infrastructure/secrets/a1-ops-prd/sealed-ses-secrets-prd.yaml
 
 # Delete plaintext
-rm /tmp/email-secrets.yaml
+rm /tmp/ses-secrets.yaml
 
 # Apply
-KUBECONFIG=~/.kube/mattox/a1-ops-prd kubectl apply -f infrastructure/secrets/a1-ops-prd/sealed-email-secrets-prd.yaml
+KUBECONFIG=~/.kube/mattox/a1-ops-prd kubectl apply -f infrastructure/secrets/a1-ops-prd/sealed-ses-secrets-prd.yaml
 ```
+
+### 6. Sending Limits
+
+| Mode | Daily Limit | Rate Limit |
+|------|-------------|------------|
+| Sandbox | 200 emails | 1/second |
+| Production | Request-based | Scales with reputation |
+
+### 7. Monitoring
+
+Set up CloudWatch alarms for:
+- Bounce rate (keep < 5%)
+- Complaint rate (keep < 0.1%)
+- Sending quota usage
 
 ---
 
@@ -366,6 +420,6 @@ KUBECONFIG=~/.kube/mattox/a1-ops-prd kubectl get secret stackeye-stripe-secrets 
 | Service | Dashboard | Docs |
 |---------|-----------|------|
 | Stripe | [dashboard.stripe.com](https://dashboard.stripe.com) | [stripe.com/docs](https://stripe.com/docs) |
-| Resend | [resend.com](https://resend.com) | [resend.com/docs](https://resend.com/docs) |
+| AWS SES | [console.aws.amazon.com/ses](https://console.aws.amazon.com/ses) | [docs.aws.amazon.com/ses](https://docs.aws.amazon.com/ses/) |
 | Twilio | [console.twilio.com](https://console.twilio.com) | [twilio.com/docs](https://twilio.com/docs) |
 | Auth0 | [manage.auth0.com](https://manage.auth0.com) | [auth0.com/docs](https://auth0.com/docs) |
