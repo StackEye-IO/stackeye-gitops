@@ -8,3 +8,4 @@ resources:
   - cluster.yaml
   - service-lb.yaml
   - service-tailscale.yaml
+  - scheduled-backup.yaml

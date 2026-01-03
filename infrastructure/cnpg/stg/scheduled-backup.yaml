@@ -1,0 +1,25 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: stackeye-db-backup
+  namespace: stackeye-stg
+  labels:
+    app.kubernetes.io/name: stackeye
+    app.kubernetes.io/component: backup
+    environment: stg
+spec:
+  # Twice daily: 3 AM and 3 PM UTC
+  schedule: "0 3,15 * * *"
+  # Reference the cluster
+  cluster:
+    name: stackeye-db
+  # Backup type: full base backup using Barman
+  method: barmanObjectStore
+  # Don't run immediately on creation
+  immediate: false
+  # Enable scheduling
+  suspend: false
+  # Prefer standby for backup to minimize primary load
+  target: prefer-standby
+  # Backup owner reference - keep backup even if ScheduledBackup is deleted
+  backupOwnerReference: none

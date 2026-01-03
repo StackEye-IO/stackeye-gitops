@@ -1,0 +1,32 @@
+# ArgoCD Application for Grafana
+# Deployed separately from Prometheus for flexibility
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: grafana
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: stackeye
+  sources:
+    - repoURL: https://grafana.github.io/helm-charts
+      chart: grafana
+      targetRevision: 8.*  # Latest 8.x release
+      helm:
+        releaseName: grafana
+        valueFiles:
+          - $values/infrastructure/monitoring/grafana/values.yaml
+    - repoURL: https://github.com/StackEye-IO/stackeye-gitops
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

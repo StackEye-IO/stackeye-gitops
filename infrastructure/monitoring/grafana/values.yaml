@@ -1,0 +1,87 @@
+# Grafana Helm values
+# https://github.com/grafana/helm-charts/tree/main/charts/grafana
+
+# Persistence
+persistence:
+  enabled: true
+  storageClassName: longhorn
+  size: 10Gi
+
+# Resources
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+# Admin credentials - use existing secret
+admin:
+  existingSecret: grafana-admin-credentials
+  userKey: admin-user
+  passwordKey: admin-password
+
+# Ingress
+ingress:
+  enabled: true
+  ingressClassName: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+  hosts:
+    - grafana.stackeye.io
+  tls:
+    - secretName: grafana-tls
+      hosts:
+        - grafana.stackeye.io
+
+# Datasources - auto-configure Prometheus
+datasources:
+  datasources.yaml:
+    apiVersion: 1
+    datasources:
+      - name: Prometheus
+        type: prometheus
+        url: http://prometheus-kube-prometheus-prometheus.monitoring.svc:9090
+        access: proxy
+        isDefault: true
+        editable: false
+
+# Dashboard providers - load from ConfigMaps
+dashboardProviders:
+  dashboardproviders.yaml:
+    apiVersion: 1
+    providers:
+      - name: default
+        orgId: 1
+        folder: ''
+        type: file
+        disableDeletion: false
+        editable: true
+        options:
+          path: /var/lib/grafana/dashboards/default
+
+# Sidecar for dynamic dashboard loading
+sidecar:
+  dashboards:
+    enabled: true
+    label: grafana_dashboard
+    labelValue: "1"
+    searchNamespace: ALL
+  datasources:
+    enabled: true
+    label: grafana_datasource
+    labelValue: "1"
+    searchNamespace: ALL
+
+# Grafana configuration
+grafana.ini:
+  server:
+    root_url: https://grafana.stackeye.io
+  analytics:
+    reporting_enabled: false
+    check_for_updates: false
+  security:
+    disable_gravatar: true
+  users:
+    allow_sign_up: false
