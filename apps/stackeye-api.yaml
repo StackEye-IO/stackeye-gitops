@@ -53,7 +53,7 @@ spec:
       ref: values
   destination:
     server: https://kubernetes.default.svc  # On-prem (a1-ops-prd)
-    namespace: stackeye-staging
+    namespace: stackeye-stg
   syncPolicy:
     automated:
       prune: true
@@ -83,7 +83,7 @@ spec:
       ref: values
   destination:
     server: https://kubernetes.default.svc  # On-prem (a1-ops-prd)
-    namespace: stackeye
+    namespace: stackeye-prd
   syncPolicy:
     automated:
       prune: false  # More careful in prod

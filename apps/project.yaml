@@ -21,25 +21,25 @@ spec:
     # On-prem cluster (a1-ops-prd) - API, ArgoCD
     - namespace: stackeye-dev
       server: https://kubernetes.default.svc
-    - namespace: stackeye-staging
+    - namespace: stackeye-stg
       server: https://kubernetes.default.svc
-    - namespace: stackeye
+    - namespace: stackeye-prd
       server: https://kubernetes.default.svc
     - namespace: argocd
       server: https://kubernetes.default.svc
     # DOKS NYC3 - Workers (East Coast) via Rancher
     - namespace: stackeye-dev
       server: https://rancher.support.tools/k8s/clusters/c-dk75c
-    - namespace: stackeye-staging
+    - namespace: stackeye-stg
       server: https://rancher.support.tools/k8s/clusters/c-dk75c
-    - namespace: stackeye
+    - namespace: stackeye-prd
       server: https://rancher.support.tools/k8s/clusters/c-dk75c
     # DOKS SFO3 - Workers (West Coast) via Rancher
     - namespace: stackeye-dev
       server: https://rancher.support.tools/k8s/clusters/c-8wvc4
-    - namespace: stackeye-staging
+    - namespace: stackeye-stg
       server: https://rancher.support.tools/k8s/clusters/c-8wvc4
-    - namespace: stackeye
+    - namespace: stackeye-prd
       server: https://rancher.support.tools/k8s/clusters/c-8wvc4
 
   # Allow all cluster-scoped resources
