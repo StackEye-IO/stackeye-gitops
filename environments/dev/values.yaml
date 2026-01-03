@@ -4,13 +4,11 @@
 # API service
 api:
   image:
-    tag: "v0.0.1" # Updated by CD on v*.*.* tags
-
+    tag: "0.1.0" # Updated by CD on v*.*.* tags
 # Worker service
 worker:
   image:
-    tag: "v0.0.1" # Updated by CD on v*.*.* tags
-
+    tag: "0.1.0" # Updated by CD on v*.*.* tags
   # Tailscale sidecar for database connectivity via Tailscale network
   # Enables connection to stackeye-db-dev and stackeye-valkey-dev on a1-ops-prd
   tailscale:
@@ -29,12 +27,10 @@ worker:
       limits:
         cpu: 100m
         memory: 128Mi
-
 # Web service
 web:
   image:
     tag: "latest" # Updated by CD on v*.*.* tags
-
 # Dev-specific overrides
 global:
   environment: dev
