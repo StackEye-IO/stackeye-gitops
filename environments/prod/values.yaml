@@ -1,43 +1,31 @@
 # Production environment values
 # Updated automatically by CD pipeline on *-prod tag push
 
-# API service
-api:
-  image:
-    tag: "latest"  # Updated by CD on v*.*.*-prod tags
+# Image overrides (chart uses root-level keys)
+image:
+  repository: harbor.support.tools/stackeye-io/api
+  tag: "0.1.0"
 
-# Worker service
-worker:
-  image:
-    tag: "latest"  # Updated by CD on v*.*.*-prod tags
+# Disable SealedSecrets - we manage secrets externally
+sealedSecrets:
+  enabled: false
 
-  # Tailscale sidecar for database connectivity via Tailscale network
-  # Enables connection to stackeye-db-prd and stackeye-valkey-prd on a1-ops-prd
-  tailscale:
-    enabled: true
-    image:
-      repository: tailscale/tailscale
-      tag: latest
-    authSecretName: tailscale-auth
-    authSecretKey: authkey
-    # Userspace networking (no NET_ADMIN required, works on most cloud providers)
-    userspace: true
-    # Accept routes from subnet routers (needed to reach Tailscale services)
-    acceptRoutes: true
-    # Resources for Tailscale sidecar
-    resources:
-      requests:
-        cpu: 10m
-        memory: 64Mi
-      limits:
-        cpu: 100m
-        memory: 128Mi
+# Use existing secret created outside of Helm
+secrets:
+  existingSecretName: stackeye-api-secrets
 
-# Web service
-web:
-  image:
-    tag: "latest"  # Updated by CD on v*.*.*-prod tags
+# Production-specific ingress
+ingress:
+  hosts:
+    - host: api.stackeye.io
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: stackeye-api-tls
+      hosts:
+        - api.stackeye.io
 
-# Production-specific overrides
+# Production environment identifier
 global:
   environment: prod
