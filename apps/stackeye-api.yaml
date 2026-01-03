@@ -13,7 +13,7 @@ spec:
   sources:
     - repoURL: oci://harbor.support.tools/stackeye-io/charts/stackeye-api
       chart: stackeye-api
-      targetRevision: 0.1.0
+      targetRevision: 0.2.0
       helm:
         releaseName: stackeye-api
         valueFiles:
@@ -41,9 +41,9 @@ metadata:
 spec:
   project: stackeye
   sources:
-    - repoURL: oci://harbor.support.tools/stackeye-io/charts
+    - repoURL: oci://harbor.support.tools/stackeye-io/charts/stackeye-api
       chart: stackeye-api
-      targetRevision: 0.1.*
+      targetRevision: 0.2.*
       helm:
         releaseName: stackeye-api
         valueFiles:
@@ -71,9 +71,9 @@ metadata:
 spec:
   project: stackeye
   sources:
-    - repoURL: oci://harbor.support.tools/stackeye-io/charts
+    - repoURL: oci://harbor.support.tools/stackeye-io/charts/stackeye-api
       chart: stackeye-api
-      targetRevision: 0.1.*
+      targetRevision: 0.2.*
       helm:
         releaseName: stackeye-api
         valueFiles:
