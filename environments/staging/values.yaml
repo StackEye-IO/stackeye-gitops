@@ -1,40 +1,31 @@
 # Staging environment values
 # Updated automatically by CD pipeline on *-staging tag push
 
-# API service
-api:
-  image:
-    tag: "latest"  # Updated by CD on v*.*.*-staging tags
+# Image overrides (chart uses root-level keys)
+image:
+  repository: harbor.support.tools/stackeye-io/api
+  tag: "0.1.0"
 
-# Worker service
-worker:
-  image:
-    tag: "latest"  # Updated by CD on v*.*.*-staging tags
+# Disable SealedSecrets - we manage secrets externally
+sealedSecrets:
+  enabled: false
 
-  # Tailscale sidecar for database connectivity via Tailscale network
-  # Enables connection to stackeye-db-stg and stackeye-valkey-stg on a1-ops-prd
-  tailscale:
-    enabled: true
-    image:
-      repository: tailscale/tailscale
-      tag: latest
-    authSecretName: tailscale-auth
-    authSecretKey: authkey
-    userspace: true
-    acceptRoutes: true
-    resources:
-      requests:
-        cpu: 10m
-        memory: 64Mi
-      limits:
-        cpu: 100m
-        memory: 128Mi
+# Use existing secret created outside of Helm
+secrets:
+  existingSecretName: stackeye-api-secrets
 
-# Web service
-web:
-  image:
-    tag: "latest"  # Updated by CD on v*.*.*-staging tags
+# Staging-specific ingress
+ingress:
+  hosts:
+    - host: api-staging.stackeye.io
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: stackeye-api-staging-tls
+      hosts:
+        - api-staging.stackeye.io
 
-# Staging-specific overrides
+# Staging environment identifier
 global:
   environment: staging
