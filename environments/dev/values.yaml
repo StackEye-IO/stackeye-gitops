@@ -29,3 +29,10 @@ ingress:
 # Dev environment identifier
 global:
   environment: dev
+
+# Auth0 configuration for dev environment
+auth0:
+  enabled: true
+  domain: "dev-0zmbv1jojxvcf6gp.us.auth0.com"
+  audience: "https://api-dev.stackeye.io"
+  clientId: "Qu2HceqVElCTAAaKqtej8ah62VhC2NQo"
