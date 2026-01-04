@@ -29,3 +29,21 @@ ingress:
 # Staging environment identifier
 global:
   environment: staging
+
+# Image tags (updated by CI)
+api:
+  image:
+    tag: "0.1.0"
+worker:
+  image:
+    tag: "0.1.0"
+
+# Database migration configuration
+migration:
+  enabled: true
+  image:
+    tag: "0.1.0"
+  backup:
+    enabled: true
+    storageSize: 10Gi
+    retention: 10
