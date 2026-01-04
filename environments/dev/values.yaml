@@ -33,7 +33,7 @@ auth0:
   clientId: "Qu2HceqVElCTAAaKqtej8ah62VhC2NQo"
 api:
   image:
-    tag: 0.1.1
+    tag: 0.2.2
 worker:
   image:
-    tag: 0.1.1
+    tag: 0.2.2
