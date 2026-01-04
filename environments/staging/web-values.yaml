@@ -4,11 +4,9 @@
 # Image overrides
 image:
   repository: harbor.support.tools/stackeye-io/web
-  tag: "0.1.0"
-
+  tag: "0.2.4"
 # Staging replicas
 replicaCount: 2
-
 # Staging-specific ingress
 ingress:
   hosts:
@@ -20,7 +18,6 @@ ingress:
     - secretName: stackeye-web-staging-tls
       hosts:
         - staging.stackeye.io
-
 # Application configuration
 config:
   # Backend API URL for server-side requests (internal K8s service)
@@ -31,16 +28,13 @@ config:
   auth0Domain: ""
   auth0ClientId: ""
   auth0Audience: ""
-
 # Use existing secret created outside of Helm
 secrets:
   existingSecretName: stackeye-web-secrets
-
 # PDB for staging
 podDisruptionBudget:
   enabled: true
   minAvailable: 1
-
 # Staging environment identifier
 global:
   environment: staging
