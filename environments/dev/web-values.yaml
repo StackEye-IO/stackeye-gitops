@@ -4,8 +4,7 @@
 # Image overrides
 image:
   repository: harbor.support.tools/stackeye-io/web
-  tag: "0.1.0"
-
+  tag: "0.2.0"
 # Dev-specific ingress
 ingress:
   hosts:
@@ -17,7 +16,6 @@ ingress:
     - secretName: stackeye-web-dev-tls
       hosts:
         - dev.stackeye.io
-
 # Application configuration
 config:
   # Backend API URL for server-side requests (internal K8s service)
@@ -28,11 +26,9 @@ config:
   auth0Domain: "dev-0zmbv1jojxvcf6gp.us.auth0.com"
   auth0ClientId: "Qu2HceqVElCTAAaKqtej8ah62VhC2NQo"
   auth0Audience: "https://api-dev.stackeye.io"
-
 # Use existing secret created outside of Helm
 secrets:
   existingSecretName: stackeye-web-secrets
-
 # Dev environment identifier
 global:
   environment: dev
