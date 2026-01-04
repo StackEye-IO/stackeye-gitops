@@ -5,15 +5,12 @@
 image:
   repository: harbor.support.tools/stackeye-io/api
   tag: "0.1.0"
-
 # Disable SealedSecrets - we manage secrets externally
 sealedSecrets:
   enabled: false
-
 # Use existing secret created outside of Helm
 secrets:
   existingSecretName: stackeye-api-secrets
-
 # Dev-specific ingress (use dev subdomain)
 ingress:
   hosts:
@@ -25,14 +22,18 @@ ingress:
     - secretName: stackeye-api-dev-tls
       hosts:
         - api-dev.stackeye.io
-
 # Dev environment identifier
 global:
   environment: dev
-
 # Auth0 configuration for dev environment
 auth0:
   enabled: true
   domain: "dev-0zmbv1jojxvcf6gp.us.auth0.com"
   audience: "https://api-dev.stackeye.io"
   clientId: "Qu2HceqVElCTAAaKqtej8ah62VhC2NQo"
+api:
+  image:
+    tag: 0.1.1
+worker:
+  image:
+    tag: 0.1.1
