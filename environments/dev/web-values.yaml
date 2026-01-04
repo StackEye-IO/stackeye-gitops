@@ -4,7 +4,7 @@
 # Image overrides
 image:
   repository: harbor.support.tools/stackeye-io/web
-  tag: "0.1.2"
+  tag: "0.2.4"
 # Dev-specific ingress
 ingress:
   hosts:
