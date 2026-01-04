@@ -1,0 +1,38 @@
+# Development environment values for stackeye-web
+# Updated automatically by CD pipeline on tag push
+
+# Image overrides
+image:
+  repository: harbor.support.tools/stackeye-io/web
+  tag: "0.1.0"
+
+# Dev-specific ingress
+ingress:
+  hosts:
+    - host: dev.stackeye.io
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: stackeye-web-dev-tls
+      hosts:
+        - dev.stackeye.io
+
+# Application configuration
+config:
+  # Backend API URL for server-side requests (internal K8s service)
+  backendApiUrl: "http://stackeye-api.stackeye-dev.svc.cluster.local:8080"
+  # App base URL for Auth0 callbacks
+  appBaseUrl: "https://dev.stackeye.io"
+  # Auth0 configuration
+  auth0Domain: "dev-0zmbv1jojxvcf6gp.us.auth0.com"
+  auth0ClientId: "Qu2HceqVElCTAAaKqtej8ah62VhC2NQo"
+  auth0Audience: "https://api-dev.stackeye.io"
+
+# Use existing secret created outside of Helm
+secrets:
+  existingSecretName: stackeye-web-secrets
+
+# Dev environment identifier
+global:
+  environment: dev

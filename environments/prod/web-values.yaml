@@ -1,0 +1,81 @@
+# Production environment values for stackeye-web
+# Updated automatically by CD pipeline on *-prod tag push
+
+# Image overrides
+image:
+  repository: harbor.support.tools/stackeye-io/web
+  tag: "0.1.0"
+
+# Production replicas
+replicaCount: 3
+
+# Production resources
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+  requests:
+    cpu: 250m
+    memory: 512Mi
+
+# Production-specific ingress (both apex and www)
+ingress:
+  hosts:
+    - host: stackeye.io
+      paths:
+        - path: /
+          pathType: Prefix
+    - host: www.stackeye.io
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: stackeye-web-prod-tls
+      hosts:
+        - stackeye.io
+        - www.stackeye.io
+
+# Application configuration
+config:
+  # Backend API URL for server-side requests (internal K8s service)
+  backendApiUrl: "http://stackeye-api.stackeye-prd.svc.cluster.local:8080"
+  # App base URL for Auth0 callbacks
+  appBaseUrl: "https://stackeye.io"
+  # Auth0 configuration (production uses separate Auth0 tenant)
+  auth0Domain: ""
+  auth0ClientId: ""
+  auth0Audience: ""
+
+# Use existing secret created outside of Helm
+secrets:
+  existingSecretName: stackeye-web-secrets
+
+# HPA for production
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+
+# PDB for production
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 2
+
+# Pod anti-affinity for HA
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - stackeye-web
+          topologyKey: kubernetes.io/hostname
+
+# Production environment identifier
+global:
+  environment: prod
