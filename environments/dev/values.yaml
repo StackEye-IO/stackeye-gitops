@@ -31,6 +31,9 @@ auth0:
   domain: "dev-0zmbv1jojxvcf6gp.us.auth0.com"
   audience: "https://api-dev.stackeye.io"
   clientId: "Qu2HceqVElCTAAaKqtej8ah62VhC2NQo"
+# CORS configuration - allow frontend origin for credentialed requests
+config:
+  corsAllowOrigins: "https://dev.stackeye.io"
 api:
   image:
     tag: 0.2.2
